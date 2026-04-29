@@ -84,7 +84,12 @@ def extract_data_from_image(image_file_data):
             return {}
 
     except Exception as e:
-        print(f"Error in OCR Processing Failed: {str(e)}")
-        # หากเกิด Error สีแดงอีก คราวนี้เราจะส่งค่าว่างกลับไปเพื่อให้แอปไม่ค้างที่หน้าแดง
-        # และเพื่อให้คุณหมอสามารถพิมพ์เติมได้เอง
-        return {}
+        error_msg = str(e)
+        # ตรวจสอบว่า Error เกี่ยวกับโควต้า (429) หรือไม่
+        if "429" in error_msg or "quota" in error_msg.lower():
+            return {"Error": "QUOTA_EXCEEDED", "Message": "โควต้าการใช้งาน AI เต็มชั่วคราว (15 ครั้ง/นาที) กรุณารอสักครู่ครับ"}
+        elif "404" in error_msg:
+            return {"Error": "MODEL_NOT_FOUND", "Message": "ไม่พบโมเดล AI ในระบบ โปรดตรวจสอบชื่อโมเดล"}
+        else:
+            # ถ้าเป็น Error อื่นๆ ให้แสดงข้อความ Error จริงออกมาเลยจะได้แก้ถูกจุด
+            return {"Error": "SYSTEM_ERROR", "Message": f"เกิดข้อผิดพลาด: {error_msg}"}
