@@ -6,100 +6,66 @@ from dotenv import load_dotenv
 import json
 import re
 
-# โหลดค่าจากไฟล์ .env (สำหรับรันในเครื่อง)
 load_dotenv()
 API_KEY = os.getenv("GEMINI_API_KEY")
 
-# ตั้งค่า API Key
 if API_KEY and API_KEY != "your_api_key_here":
     genai.configure(api_key=API_KEY)
 
 def get_working_model_name():
-    """
-    ฟังก์ชันตรวจสอบว่าบัญชีนี้ใช้โมเดลชื่ออะไรได้บ้าง (แก้ปัญหา 404 Model Not Found)
-    """
     try:
-        # ดึงรายชื่อโมเดลที่รองรับการสร้างเนื้อหา
-        available_models = [m.name for m in genai.list_models() 
-                           if 'generateContent' in m.supported_generation_methods]
-        
-        # ลำดับความสำคัญ: 1.5 Flash -> 1.5 Pro -> อะไรก็ได้ที่ใช้ได้
+        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
         for name in available_models:
-            if 'gemini-1.5-flash' in name:
-                return name
-        for name in available_models:
-            if 'gemini-1.5-pro' in name:
-                return name
-        
+            if 'gemini-1.5-flash' in name: return name
         return available_models[0] if available_models else 'gemini-1.5-flash'
-    except Exception:
-        return 'gemini-1.5-flash' # ตัวสำรองกรณีเช็คไม่ได้
+    except: return 'gemini-1.5-flash'
 
 def extract_data_from_image(image_file_data):
-    """
-    ฟังก์ชันสกัดข้อมูลตัวเลขจากภาพสลิป ABG/VBG
-    รวมการแก้ปัญหา JSON พัง และ Quota เต็ม
-    """
     if not API_KEY or API_KEY == "your_api_key_here":
-        return {"Error": "MISSING_API_KEY", "Message": "กรุณาใส่ API Key ใน Settings"}
+        return {}
 
     try:
-        # เปิดไฟล์ภาพ
         img = PIL.Image.open(image_file_data)
+        model_name = get_working_model_name()
+        model = genai.GenerativeModel(model_name)
         
-        # เลือกโมเดลที่ใช้งานได้อัตโนมัติ
-        target_model = get_working_model_name()
-        model = genai.GenerativeModel(target_model)
-        
-        # Prompt ที่บังคับให้ตอบเฉพาะ JSON และแม่นยำที่สุด
+        # ปรับ Prompt ให้ระบุชื่อ Key ให้ตรงกับหน้าจอ app.py เป๊ะๆ
         prompt = """
-        Extract numerical values from this blood gas result image.
-        Return ONLY a JSON object with these exact keys:
-        {
-          "pH": number,
-          "PaCO2": number,
-          "PaO2": number,
-          "Na": number,
-          "K": number,
-          "Cl": number,
-          "Hb": number,
-          "SaO2": number,
-          "Lactate": number
-        }
-        Requirements:
-        1. Return ONLY JSON. No explanations.
-        2. If a value is missing or unreadable, use null.
-        3. Do not include units (e.g., use 7.4 instead of "7.4 pH").
+        Extract numerical values from this medical slip.
+        Return ONLY a JSON object with these EXACT keys:
+        "pH", "PaCO2", "PaO2", "Na", "K", "Cl", "Hb", "SaO2", "Lactate"
+        
+        Important:
+        - Use "pH" (not ph)
+        - Use "PaCO2" (not pCO2)
+        - Use "PaO2" (not pO2)
+        - Return only numbers or null.
+        - No markdown formatting.
         """
         
         response = model.generate_content([prompt, img])
         raw_text = response.text.strip()
         
-        # --- ระบบดักจับ JSON (Robust Parsing) ---
-        # ใช้ Regex ค้นหาข้อความที่อยู่ในปีกกา {} เพื่อตัดส่วนเกินที่ AI อาจจะแถมมา
+        # สกัด JSON ออกมา
         json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
-        
         if json_match:
-            json_str = json_match.group(0)
-            data = json.loads(json_str)
+            data = json.loads(json_match.group(0))
             
-            # ปรับแต่งค่าเล็กน้อยเพื่อให้ตรงกับความต้องการของแอป
-            # ป้องกันกรณี AI ตอบชื่อ Key เป็นตัวเล็กทั้งหมด
-            formatted_data = {}
+            # ระบบ Re-mapping เพื่อความชัวร์ (ถ้า AI ตอบตัวเล็กมา เราแก้ให้เป็นตัวใหญ่)
+            final_data = {}
             mapping = {
-                "ph": "pH", "paco2": "PaCO2", "pao2": "PaO2", 
-                "na": "Na", "k": "K", "cl": "Cl", 
+                "ph": "pH", "paco2": "PaCO2", "pao2": "PaO2",
+                "na": "Na", "k": "K", "cl": "Cl",
                 "hb": "Hb", "sao2": "SaO2", "lactate": "Lactate"
             }
             
             for k, v in data.items():
                 std_key = mapping.get(k.lower(), k)
-                formatted_data[std_key] = v
+                # แปลงค่าให้เป็น string เพื่อให้ Text Input ของ Streamlit รับได้ง่าย
+                final_data[std_key] = str(v) if v is not None else ""
                 
-            return formatted_data
-        else:
-            return {"Error": "INVALID_FORMAT", "Message": "AI ตอบกลับในรูปแบบที่ไม่อ่านค่าไม่ได้"}
-
+            return final_data
+        return {}
     except Exception as e:
         error_msg = str(e)
         # ดักจับปัญหาโควต้าเต็ม (Error 429)
