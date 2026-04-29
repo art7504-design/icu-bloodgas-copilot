@@ -1,7 +1,7 @@
 import streamlit as st
 from image_processing import extract_data_from_image
-from calculations import calculate_abg_results  # สมมติว่ามีไฟล์คำนวณแยกไว้
-from ai_consultant import get_ai_consultation  # สมมติว่ามีไฟล์ปรึกษา AI แยกไว้
+#from calculations import calculate_abg_results  # สมมติว่ามีไฟล์คำนวณแยกไว้
+#from ai_consultant import get_ai_consultation  # สมมติว่ามีไฟล์ปรึกษา AI แยกไว้
 
 # --- 1. ตั้งค่าหน้าเว็บ ---
 st.set_page_config(page_title="ICU Blood Gas Copilot", page_icon="🏥", layout="wide")
