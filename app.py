@@ -51,8 +51,14 @@ st.markdown("<h2 style='color: #005f73;'>🏥 ICU Blood Gas Copilot</h2>", unsaf
 uploaded_file = st.file_uploader("📷 ถ่ายรูปสลิป / เลือกไฟล์จากเครื่อง...", type=['jpg', 'jpeg', 'png'])
 
 if uploaded_file is not None and not st.session_state.report_generated:
-    # อ่านค่าเมื่ออัปโหลดรูป (จำลองว่าอ่านเสร็จแล้ว)
-    st.session_state.ocr_data = extract_data_from_image(uploaded_file)
+    with st.spinner("กำลังใช้ AI อ่านข้อมูลจากภาพ..."):
+        # เรียกใช้ฟังก์ชันที่แก้ใหม่
+        extracted = extract_data_from_image(uploaded_file)
+        if extracted:
+            st.session_state.ocr_data = extracted
+            st.success("อ่านข้อมูลสำเร็จ! โปรดตรวจสอบความถูกต้องด้านล่าง")
+        else:
+            st.error("ไม่สามารถอ่านข้อมูลจากภาพได้ กรุณาลองอัปโหลดภาพที่ชัดเจนขึ้น")
 
 if st.session_state.ocr_data:
     st.markdown("---")
