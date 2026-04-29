@@ -8,18 +8,53 @@ import json
 load_dotenv()
 API_KEY = os.getenv("GEMINI_API_KEY")
 
+if API_KEY and API_KEY != "your_api_key_here":
+    genai.configure(api_key=API_KEY)
+
+# --- 🚀 ฟังก์ชันไม้ตาย: ค้นหาโมเดลที่บัญชีของคุณรองรับอัตโนมัติ ---
+# (เราเอามันมาใช้ในนี้ด้วยเพื่อความชัวร์)
+def get_working_model_name():
+    try:
+        # ดึงรายชื่อโมเดลทั้งหมดที่ API Key นี้มีสิทธิ์ใช้
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                # ถ้าเจอ 1.5-flash หรือ pro (ที่มี Vision) ให้ใช้ก่อน
+                if 'gemini-1.5-flash' in m.name or 'gemini-pro-vision' in m.name:
+                    return m.name
+        
+        # ถ้าไม่มี flash/pro-vision เลย ให้ดึงโมเดลตัวแรกสุดที่อนุญาตให้พิมพ์ข้อความได้มาใช้
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                return m.name
+    except Exception:
+        pass
+    
+    return 'gemini-1.5-flash' # ตัวสำรอง (ซึ่งถ้า error ก็จะเหมือนเดิม)
+# -----------------------------------------------------------
+
 def extract_data_from_image(image_file_data):
+    """
+    ฟังก์ชันสกัดข้อมูลตัวเลขทางการแพทย์จากสลิป ABG/VBG 
+    โดยใช้ Gemini Vision API (Multimodal) แบบ Auto-detect
+    """
     if not API_KEY or API_KEY == "your_api_key_here":
-        return {}
+        # ถ้าไม่มี API Key ให้ส่ง Dummy data กลับไปเพื่อไม่ให้แอปพัง (สำหรับเทสต์ UI)
+        return {"pH": "7.40", "PaCO2": "40", "PaO2": "148", "Error": "Missing API Key"}
 
     try:
+        # เปิดไฟล์ภาพที่รับมาจาก Streamlit
         img = PIL.Image.open(image_file_data)
         
-        # ใช้ชื่อโมเดลที่คุณรันผ่านในแชทก่อนหน้า
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # เรียกใช้ฟังก์ชันค้นหาโมเดลอัตโนมัติ
+        model_name = get_working_model_name()
         
+        # กรองเพื่อให้ได้โมเดลที่รองรับการอ่านภาพ (ถ้ามี)
+        model = genai.GenerativeModel(model_name)
+        
+        # เขียน Command Prompt (Instruction) เพื่อสั่ง AI ให้อ่านภาพแบบ JSON
         prompt = """
-        Analyze this blood gas slip. Extract these values into a clean JSON format:
+        Analyze this medical blood gas slip image. 
+        Extract numerical values for THESE parameters only into a clean JSON format:
         {
           "pH": number,
           "PaCO2": number,
@@ -27,20 +62,29 @@ def extract_data_from_image(image_file_data):
           "Na": number,
           "K": number,
           "Cl": number,
+          "Lactate": number,
           "Hb": number,
-          "SaO2": number,
-          "Lactate": number
+          "SaO2": number
         }
-        Return ONLY the JSON object. If a value is missing, use null.
+        Return ONLY the JSON. If a value is missing or unreadable, use null.
         """
         
+        # ส่งภาพและคำสั่งไปให้ AI
         response = model.generate_content([prompt, img])
+        text_response = response.text
         
-        # ทำความสะอาดสตริง JSON ที่ส่งกลับมา
-        cleaned_text = response.text.replace('```json', '').replace('```', '').strip()
-        data = json.loads(cleaned_text)
-        return data
+        # สกัดข้อความในรูปแบบ JSON ออกมาใช้งาน
+        try:
+            # ทำความสะอาดข้อความ เผื่อ AI ตอบมาเกิน
+            cleaned_response = text_response.strip().replace("```json", "").replace("```", "")
+            data = json.loads(cleaned_response)
+            return data
+        except json.JSONDecodeError:
+            print(f"Error in JSON decoding: {text_response}")
+            return {}
 
     except Exception as e:
-        print(f"Error in OCR: {e}")
+        print(f"Error in OCR Processing Failed: {str(e)}")
+        # หากเกิด Error สีแดงอีก คราวนี้เราจะส่งค่าว่างกลับไปเพื่อให้แอปไม่ค้างที่หน้าแดง
+        # และเพื่อให้คุณหมอสามารถพิมพ์เติมได้เอง
         return {}
