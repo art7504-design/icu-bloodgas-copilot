@@ -69,11 +69,11 @@ def extract_data_from_image(image_file_data):
     except Exception as e:
         error_msg = str(e)
         # ดักจับปัญหาโควต้าเต็ม (Error 429)
-        if "429" in error_msg or "quota" in error_msg.lower():
-            return {"Error": "QUOTA_EXCEEDED", "Message": "โควต้าเต็มชั่วคราว (15 ครั้ง/นาที) กรุณารอสัก 30 วินาที"}
+        #if "429" in error_msg or "quota" in error_msg.lower():
+            #return {"Error": "QUOTA_EXCEEDED", "Message": "โควต้าเต็มชั่วคราว (15 ครั้ง/นาที) กรุณารอสัก 30 วินาที"}
         
         # ดักจับปัญหาโมเดลหาไม่เจอ (Error 404)
-        if "404" in error_msg:
-            return {"Error": "MODEL_NOT_FOUND", "Message": f"ไม่พบโมเดล {target_model} ในบัญชีนี้"}
+        #if "404" in error_msg:
+            #return {"Error": "MODEL_NOT_FOUND", "Message": f"ไม่พบโมเดล {target_model} ในบัญชีนี้"}
             
         return {"Error": "SYSTEM_ERROR", "Message": f"เกิดข้อผิดพลาด: {error_msg}"}
