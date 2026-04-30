@@ -1,10 +1,6 @@
 import streamlit as st
 from image_processing import extract_data_from_image
 
-# --- ปิดส่วนที่ยังไม่มีไฟล์ไว้ก่อนเพื่อไม่ให้เกิด Error สีแดง ---
-# from calculations import calculate_abg_results 
-# from ai_consultant import get_ai_consultation 
-
 # --- ตั้งค่าหน้าเว็บ ---
 st.set_page_config(page_title="ICU Blood Gas Copilot", page_icon="🏥", layout="wide")
 
@@ -23,7 +19,7 @@ uploaded_file = st.file_uploader("📸 ถ่ายรูปสลิป / เ�
 if uploaded_file is not None:
     st.image(uploaded_file, caption="รูปที่อัปโหลด", width=300)
     
-    if st.button("🔍 รับข้อมูลจากรูปภาพ"):
+    if st.button("🔍 สกัดข้อมูลจากรูปภาพ"):
         with st.spinner('AI กำลังอ่านตัวเลขจากสลิป...'):
             result = extract_data_from_image(uploaded_file)
             
@@ -31,10 +27,10 @@ if uploaded_file is not None:
                 st.session_state.extracted_data = result
                 st.success("อ่านข้อมูลสำเร็จ! โปรดตรวจสอบความถูกต้องด้านล่าง")
             else:
-                # ถ้า Error ให้พยายามดึง Message มาโชว์
                 error_msg = result.get("Message", "ไม่สามารถอ่านข้อมูลได้ หรือโควต้าเต็ม")
                 st.error(f"❌ {error_msg}")
 
+# --- ลดขนาดหัวข้อลงโดยใช้ ### ---
 st.markdown("### 🩸 ข้อมูลจากสลิป (ตรวจสอบและแก้ไขได้)")
 data = st.session_state.extracted_data
 
@@ -58,10 +54,11 @@ with col3:
 
 st.markdown("---")
 
-# --- ส่วนข้อมูลเพิ่มเติม (กลับมาเป็น 4-5 ช่องตามเดิม) ---
+# --- ส่วนข้อมูลเพิ่มเติม (ลดขนาดหัวข้อ และเพิ่มช่อง Age) ---
 st.markdown("### 📝 ข้อมูลผู้ป่วยและเครื่องช่วยหายใจเพิ่มเติม")
 ca, cb, cc = st.columns(3)
 with ca:
+    age = st.text_input("Age (ปี)", value="") # เพิ่มช่องกรอกอายุ
     fio2 = st.number_input("FiO2 (%)", min_value=21, max_value=100, value=21)
     temp = st.text_input("Temperature (°C)", value="37.0")
 with cb:
