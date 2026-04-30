@@ -19,7 +19,7 @@ uploaded_file = st.file_uploader("📸 ถ่ายรูปสลิป / เ�
 if uploaded_file is not None:
     st.image(uploaded_file, caption="รูปที่อัปโหลด", width=300)
     
-    if st.button("🔍 สกัดข้อมูลจากรูปภาพ"):
+    if st.button("🔍 รับข้อมูลจากรูปภาพ"):
         with st.spinner('AI กำลังอ่านตัวเลขจากสลิป...'):
             result = extract_data_from_image(uploaded_file)
             
@@ -31,7 +31,7 @@ if uploaded_file is not None:
                 st.error(f"❌ {error_msg}")
 
 # --- ลดขนาดหัวข้อลงโดยใช้ ### ---
-st.markdown("### 🩸 ข้อมูลจากสลิป (ตรวจสอบและแก้ไขได้)")
+st.markdown("### 🩸 ข้อมูลจากสลิป (ตรวจสอบความถูกต้อง สามารถแก้ไขได้)")
 data = st.session_state.extracted_data
 
 # --- ส่วนแสดงช่องกรอกข้อมูล (3 คอลัมน์) ---
