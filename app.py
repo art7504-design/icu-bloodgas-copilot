@@ -31,7 +31,7 @@ if uploaded_file is not None:
                 st.error(f"❌ {error_msg}")
 
 # --- ลดขนาดหัวข้อลงโดยใช้ ### ---
-st.markdown("### 🩸 ข้อมูลจากสลิป (ตรวจสอบความถูกต้อง สามารถแก้ไขได้)")
+st.markdown("#### 🩸 ข้อมูลจากสลิป (ตรวจสอบความถูกต้อง สามารถแก้ไขได้)")
 data = st.session_state.extracted_data
 
 # --- ส่วนแสดงช่องกรอกข้อมูล (3 คอลัมน์) ---
@@ -55,7 +55,7 @@ with col3:
 st.markdown("---")
 
 # --- ส่วนข้อมูลเพิ่มเติม (ลดขนาดหัวข้อ และเพิ่มช่อง Age) ---
-st.markdown("### 📝 ข้อมูลผู้ป่วยและเครื่องช่วยหายใจเพิ่มเติม")
+st.markdown("#### 📝 ข้อมูลผู้ป่วยและเครื่องช่วยหายใจเพิ่มเติม")
 ca, cb, cc = st.columns(3)
 with ca:
     age = st.text_input("Age (ปี)", value="") # เพิ่มช่องกรอกอายุ
@@ -75,5 +75,5 @@ if st.button("🚀 วิเคราะห์ผลและขอคำแน�
     st.info("ระบบวิเคราะห์จะพร้อมใช้งานเมื่อเชื่อมต่อไฟล์ ai_consultant สำเร็จ")
 
 if st.session_state.consultation_result:
-    st.markdown("### 🤖 คำแนะนำ")
+    st.markdown("#### 🤖 คำแนะนำ")
     st.info(st.session_state.consultation_result)
