@@ -56,7 +56,8 @@ def get_ai_consultation(full_data):
             model = genai.GenerativeModel(best_model)
             response = model.generate_content(prompt)
             return response.text
-    def chat_with_gemini(context, chat_history):
+            
+def chat_with_gemini(context, chat_history):
     """
     ฟังก์ชันสำหรับแชทถาม-ตอบต่อเนื่อง โดยจดจำบริบทของคนไข้และคำแนะนำก่อนหน้า
     """
