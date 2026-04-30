@@ -1,5 +1,6 @@
 import streamlit as st
 from image_processing import extract_data_from_image
+from ai_consultant import get_ai_consultation
 
 # --- ตั้งค่าหน้าเว็บ ---
 st.set_page_config(page_title="ICU Blood Gas Copilot", page_icon="🏥", layout="wide")
@@ -72,7 +73,20 @@ patient_info = st.text_area("ประวัติสำคัญ / อากา
 
 # --- ปุ่มวิเคราะห์ ---
 if st.button("🚀 วิเคราะห์ผลและขอคำแนะนำ"):
-    st.info("ระบบวิเคราะห์จะพร้อมใช้งานเมื่อเชื่อมต่อไฟล์ ai_consultant สำเร็จ")
+    full_data = {
+        "pH": ph, "PaCO2": paco2, "PaO2": pao2,
+        "Na": na, "K": k, "Cl": cl,
+        "Hb": hb, "SaO2": sao2, "Lactate": lactate,
+        "Age": age, "FiO2": fio2, "Temp": temp,
+        "Mode": mode, "PEEP": peep, "RR": rr, "TV": tv,
+        "History": patient_info
+    }
+    
+    with st.spinner('AI กำลังวิเคราะห์ข้อมูล...'):
+        # เรียกใช้ฟังก์ชันวิเคราะห์จริง
+        advice = get_ai_consultation(full_data)
+        st.session_state.consultation_result = advice
+        st.rerun() # สั่งให้หน้าจอรีเฟรชเพื่อโชว์ผลลัพธ์
 
 if st.session_state.consultation_result:
     st.markdown("#### 🤖 คำแนะนำ")
