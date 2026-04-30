@@ -1,6 +1,7 @@
 import streamlit as st
 from image_processing import extract_data_from_image
 from ai_consultant import get_ai_consultation
+from calculations import calculate_clinical_indices # <-- เพิ่มการนำเข้าไฟล์คำนวณ
 
 # --- ตั้งค่าหน้าเว็บ ---
 st.set_page_config(page_title="ICU Blood Gas Copilot", page_icon="🏥", layout="wide")
@@ -31,7 +32,7 @@ if uploaded_file is not None:
                 error_msg = result.get("Message", "ไม่สามารถอ่านข้อมูลได้ หรือโควต้าเต็ม")
                 st.error(f"❌ {error_msg}")
 
-# --- ลดขนาดหัวข้อลงโดยใช้ ### ---
+# --- ลดขนาดหัวข้อลงโดยใช้ #### ---
 st.markdown("#### 🩸 ข้อมูลจากสลิป (ตรวจสอบความถูกต้อง สามารถแก้ไขได้)")
 data = st.session_state.extracted_data
 
@@ -71,18 +72,56 @@ with cc:
 
 patient_info = st.text_area("ประวัติสำคัญ / อาการเบื้องต้น", placeholder="ระบุประวัติหรืออาการเพิ่มเติมที่นี่...")
 
+# --- รวบรวมข้อมูลทั้งหมดไว้ตรงนี้ เพื่อใช้ทั้งคำนวณและส่งให้ AI ---
+full_data = {
+    "pH": ph, "PaCO2": paco2, "PaO2": pao2,
+    "Na": na, "K": k, "Cl": cl,
+    "Hb": hb, "SaO2": sao2, "Lactate": lactate,
+    "Age": age, "FiO2": fio2, "Temp": temp,
+    "Mode": mode, "PEEP": peep, "RR": rr, "TV": tv,
+    "History": patient_info
+}
+
+st.markdown("---")
+
+# ==========================================
+# 🧮 ส่วนที่เพิ่มใหม่: แสดงผลการคำนวณทางคลินิก
+# ==========================================
+st.markdown("#### 🧮 ค่าคำนวณทางคลินิก (Calculated Indices)")
+st.caption("คำนวณโดยตรงจากสูตรสรีรวิทยา (อัปเดตอัตโนมัติตามข้อมูลด้านบน)")
+
+# เรียกใช้ฟังก์ชันคำนวณ
+calc_results = calculate_clinical_indices(full_data)
+
+# สร้าง Dashboard แสดงตัวเลข 4 คอลัมน์
+m1, m2, m3, m4 = st.columns(4)
+
+with m1:
+    st.metric(label="P/F Ratio", 
+              value=calc_results.get("PF_Ratio", "N/A"), 
+              delta=calc_results.get("PF_Severity", ""), 
+              delta_color="off")
+with m2:
+    st.metric(label="A-a Gradient", 
+              value=calc_results.get("Aa_Gradient", "N/A"))
+with m3:
+    st.metric(label="Expected A-a (Age)", 
+              value=calc_results.get("Expected_Aa", "N/A"))
+with m4:
+    st.metric(label="CaO2 (ml/dL)", 
+              value=calc_results.get("CaO2", "N/A"))
+
+st.markdown("---")
+# ==========================================
+
 # --- ปุ่มวิเคราะห์ ---
 if st.button("🚀 วิเคราะห์ผลและขอคำแนะนำ"):
-    full_data = {
-        "pH": ph, "PaCO2": paco2, "PaO2": pao2,
-        "Na": na, "K": k, "Cl": cl,
-        "Hb": hb, "SaO2": sao2, "Lactate": lactate,
-        "Age": age, "FiO2": fio2, "Temp": temp,
-        "Mode": mode, "PEEP": peep, "RR": rr, "TV": tv,
-        "History": patient_info
-    }
     
-    with st.spinner('AI กำลังวิเคราะห์ข้อมูล...'):
+    # แนบค่าที่คำนวณได้ ส่งไปให้ AI ด้วย เพื่อความแม่นยำ
+    full_data["Calculated_PF"] = calc_results.get("PF_Ratio")
+    full_data["Calculated_Aa"] = calc_results.get("Aa_Gradient")
+    
+    with st.spinner('AI กำลังวิเคราะห์ข้อมูลร่วมกับผลคำนวณ...'):
         # เรียกใช้ฟังก์ชันวิเคราะห์จริง
         advice = get_ai_consultation(full_data)
         st.session_state.consultation_result = advice
