@@ -8,17 +8,28 @@ API_KEY = os.getenv("GEMINI_API_KEY")
 if API_KEY:
     genai.configure(api_key=API_KEY)
 
+def get_working_model():
+    """ค้นหาชื่อโมเดลที่ใช้งานได้จริงในบัญชีนี้"""
+    try:
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                # เลือก Flash เป็นลำดับแรกเพื่อความประหยัด
+                if 'gemini-1.5-flash' in m.name:
+                    return m.name
+        # ถ้าหา Flash ไม่เจอ ให้เอาตัวแรกที่ใช้ได้
+        return 'models/gemini-1.5-flash' 
+    except:
+        return 'models/gemini-1.5-flash'
+
 def get_ai_consultation(full_data):
-    """
-    ฟังก์ชันส่งข้อมูล ABG และประวัติคนไข้ไปให้ Gemini วิเคราะห์
-    """
     if not API_KEY:
         return "ไม่พบ API Key กรุณาตรวจสอบการตั้งค่า"
 
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # ใช้ฟังก์ชันหาชื่อรุ่นที่ถูกต้อง
+        model_name = get_working_model()
+        model = genai.GenerativeModel(model_name)
         
-        # เตรียมเนื้อหาที่จะส่งให้ AI
         prompt = f"""
         คุณคือผู้เชี่ยวชาญด้านเวชบำบัดวิกฤต (Critical Care Specialist) 
         จงวิเคราะห์ผล Arterial Blood Gas (ABG) ต่อไปนี้และให้คำแนะนำในการดูแลผู้ป่วย:
@@ -37,12 +48,10 @@ def get_ai_consultation(full_data):
         - Ventilator Mode: {full_data.get('Mode')}
         - ประวัติเพิ่มเติม: {full_data.get('History')}
         
-        จงสรุป:
+        จงสรุปเป็นภาษาไทย:
         1. การแปลผลหลัก (เช่น Metabolic Acidosis, Respiratory Alkalosis ฯลฯ)
         2. การวิเคราะห์สาเหตุที่เป็นไปได้
         3. คำแนะนำในการปรับเครื่องช่วยหายใจ หรือการรักษาเบื้องต้น
-        
-        ตอบเป็นภาษาไทยที่กระชับและเป็นทางการสำหรับบุคลากรทางการแพทย์
         """
         
         response = model.generate_content(prompt)
