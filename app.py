@@ -1,7 +1,7 @@
 import streamlit as st
 from image_processing import extract_data_from_image
 from calculations import calculate_clinical_indices
-from ai_consultant import get_ai_consultation, chat_with_gemini # <-- เพิ่ม chat_with_gemini
+from ai_consultant import get_ai_consultation, chat_with_gemini
 
 # --- ตั้งค่าหน้าเว็บ ---
 st.set_page_config(page_title="ICU Blood Gas Copilot", page_icon="🏥", layout="wide")
