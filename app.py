@@ -1,7 +1,7 @@
 import streamlit as st
 from image_processing import extract_data_from_image
-from ai_consultant import get_ai_consultation
-from calculations import calculate_clinical_indices # <-- เพิ่มการนำเข้าไฟล์คำนวณ
+from calculations import calculate_clinical_indices
+from ai_consultant import get_ai_consultation, chat_with_gemini # <-- เพิ่ม chat_with_gemini
 
 # --- ตั้งค่าหน้าเว็บ ---
 st.set_page_config(page_title="ICU Blood Gas Copilot", page_icon="🏥", layout="wide")
@@ -11,6 +11,8 @@ if 'extracted_data' not in st.session_state:
     st.session_state.extracted_data = {}
 if 'consultation_result' not in st.session_state:
     st.session_state.consultation_result = ""
+if 'chat_history' not in st.session_state: # <-- เพิ่ม State สำหรับเก็บประวัติแชท
+    st.session_state.chat_history = []
 
 st.title("🏥 ICU Blood Gas Copilot")
 st.markdown("---")
@@ -60,7 +62,7 @@ st.markdown("---")
 st.markdown("#### 📝 ข้อมูลผู้ป่วยและเครื่องช่วยหายใจเพิ่มเติม")
 ca, cb, cc = st.columns(3)
 with ca:
-    age = st.text_input("Age (ปี)", value="") # เพิ่มช่องกรอกอายุ
+    age = st.text_input("Age (ปี)", value="")
     fio2 = st.number_input("FiO2 (%)", min_value=21, max_value=100, value=21)
     temp = st.text_input("Temperature (°C)", value="37.0")
 with cb:
@@ -72,7 +74,7 @@ with cc:
 
 patient_info = st.text_area("ประวัติสำคัญ / อาการเบื้องต้น", placeholder="ระบุประวัติหรืออาการเพิ่มเติมที่นี่...")
 
-# --- รวบรวมข้อมูลทั้งหมดไว้ตรงนี้ เพื่อใช้ทั้งคำนวณและส่งให้ AI ---
+# --- รวบรวมข้อมูลทั้งหมด ---
 full_data = {
     "pH": ph, "PaCO2": paco2, "PaO2": pao2,
     "Na": na, "K": k, "Cl": cl,
@@ -85,48 +87,69 @@ full_data = {
 st.markdown("---")
 
 # ==========================================
-# 🧮 ส่วนที่เพิ่มใหม่: แสดงผลการคำนวณทางคลินิก
+# 🧮 ค่าคำนวณทางคลินิก (Calculated Indices)
 # ==========================================
 st.markdown("#### 🧮 ค่าคำนวณทางคลินิก (Calculated Indices)")
 st.caption("คำนวณโดยตรงจากสูตรสรีรวิทยา (อัปเดตอัตโนมัติตามข้อมูลด้านบน)")
 
-# เรียกใช้ฟังก์ชันคำนวณ
 calc_results = calculate_clinical_indices(full_data)
 
-# สร้าง Dashboard แสดงตัวเลข 4 คอลัมน์
 m1, m2, m3, m4 = st.columns(4)
-
 with m1:
-    st.metric(label="P/F Ratio", 
-              value=calc_results.get("PF_Ratio", "N/A"), 
-              delta=calc_results.get("PF_Severity", ""), 
-              delta_color="off")
+    st.metric(label="P/F Ratio", value=calc_results.get("PF_Ratio", "N/A"), delta=calc_results.get("PF_Severity", ""), delta_color="off")
 with m2:
-    st.metric(label="A-a Gradient", 
-              value=calc_results.get("Aa_Gradient", "N/A"))
+    st.metric(label="A-a Gradient", value=calc_results.get("Aa_Gradient", "N/A"))
 with m3:
-    st.metric(label="Expected A-a (Age)", 
-              value=calc_results.get("Expected_Aa", "N/A"))
+    st.metric(label="Expected A-a (Age)", value=calc_results.get("Expected_Aa", "N/A"))
 with m4:
-    st.metric(label="CaO2 (ml/dL)", 
-              value=calc_results.get("CaO2", "N/A"))
+    st.metric(label="CaO2 (ml/dL)", value=calc_results.get("CaO2", "N/A"))
 
 st.markdown("---")
-# ==========================================
 
-# --- ปุ่มวิเคราะห์ ---
+# ==========================================
+# 🚀 วิเคราะห์ผลและขอคำแนะนำ
+# ==========================================
 if st.button("🚀 วิเคราะห์ผลและขอคำแนะนำ"):
-    
-    # แนบค่าที่คำนวณได้ ส่งไปให้ AI ด้วย เพื่อความแม่นยำ
     full_data["Calculated_PF"] = calc_results.get("PF_Ratio")
     full_data["Calculated_Aa"] = calc_results.get("Aa_Gradient")
     
     with st.spinner('AI กำลังวิเคราะห์ข้อมูลร่วมกับผลคำนวณ...'):
-        # เรียกใช้ฟังก์ชันวิเคราะห์จริง
         advice = get_ai_consultation(full_data)
         st.session_state.consultation_result = advice
-        st.rerun() # สั่งให้หน้าจอรีเฟรชเพื่อโชว์ผลลัพธ์
+        st.session_state.chat_history = [] # <-- ล้างประวัติแชทเก่าทิ้ง เมื่อเริ่มเคสใหม่
+        st.rerun()
 
+# ==========================================
+# 💬 ส่วนของคำแนะนำ และ CHATBOT ถาม-ตอบ
+# ==========================================
 if st.session_state.consultation_result:
-    st.markdown("#### 🤖 คำแนะนำ")
+    st.markdown("#### 🤖 สรุปคำแนะนำจาก AI")
     st.info(st.session_state.consultation_result)
+    
+    st.markdown("---")
+    st.markdown("#### 💬 ถาม-ตอบเพิ่มเติมเกี่ยวกับเคสนี้")
+    
+    # 1. ลูปแสดงประวัติแชทเก่าบนหน้าจอ
+    for message in st.session_state.chat_history:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    # 2. ช่องรับคำถามใหม่จากผู้ใช้
+    if prompt := st.chat_input("พิมพ์คำถามที่นี่ เช่น 'ขอวิธีปรับ PEEP' หรือ 'อธิบาย A-a gradient เพิ่มเติม'"):
+        
+        # เพิ่มคำถามของผู้ใช้ลงในประวัติและแสดงผล
+        st.session_state.chat_history.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        # เตรียมบริบททั้งหมดส่งให้ AI (ข้อมูลสลิป + คำแนะนำเดิม)
+        context_str = f"ข้อมูลคนไข้ทั้งหมด: {full_data}\nคำแนะนำเริ่มต้นที่ AI ให้ไปแล้ว: {st.session_state.consultation_result}"
+
+        # ส่งไปให้ AI คิดและแสดงผล
+        with st.chat_message("assistant"):
+            with st.spinner("กำลังพิมพ์คำตอบ..."):
+                response = chat_with_gemini(context_str, st.session_state.chat_history)
+                st.markdown(response)
+        
+        # นำคำตอบที่ได้ไปเก็บในประวัติแชท
+        st.session_state.chat_history.append({"role": "assistant", "content": response})
