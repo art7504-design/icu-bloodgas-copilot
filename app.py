@@ -3,27 +3,87 @@ from image_processing import extract_data_from_image
 from calculations import calculate_clinical_indices
 from ai_consultant import get_ai_consultation, chat_with_gemini
 
-# --- ตั้งค่าหน้าเว็บ ---
-st.set_page_config(page_title="ICU Blood Gas Copilot", page_icon="🏥", layout="wide")
+# --- 1. ตั้งค่าหน้าเว็บให้เรียบหรู (เอาไอคอน 🏥 แบบเดิมออก เปลี่ยนเป็นสัญลักษณ์ทางการแพทย์ 🩺) ---
+st.set_page_config(page_title="ICU Blood Gas Copilot", page_icon="🩺", layout="wide")
+
+# --- 2. Custom CSS สำหรับปรับโทนสีพื้นหลังและส่วนประกอบทั้งหมด (ธีม Clinical High-Tech) ---
+st.markdown("""
+    <style>
+        /* ปรับพื้นหลังหลักของแอปให้เป็นโทน Dark Slate เพื่ออ่านง่ายในห้อง ICU และลดแสงสะท้อน */
+        .stApp {
+            background-color: #0F172A;
+        }
+        
+        /* ปรับแต่งสีฟอนต์ทั่วไปและข้อความให้อ่านง่าย มี Contrast สูง */
+        p, span, label, .stMarkdown {
+            color: #E2E8F0 !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        
+        /* ปรับแต่งกล่อง Input Text / Number ให้กลืนไปกับธีมและดูทันสมัย */
+        .stTextInput>div>div>input, .stNumberInput>div>div>input, .stTextArea>div>div>textarea {
+            background-color: #1E293B !important;
+            color: #F8FAFC !important;
+            border: 1px solid #334155 !important;
+            border-radius: 6px !important;
+        }
+        
+        /* ปรับแต่งปุ่มกด (Buttons) ให้ดูเรียบหรู ไฮเทคแบบ Minimal */
+        .stButton>button {
+            background-color: #2563EB !important;
+            color: #FFFFFF !important;
+            border-radius: 6px !important;
+            border: none !important;
+            font-weight: 600 !important;
+            padding: 0.5rem 1.5rem !important;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+        }
+        .stButton>button:hover {
+            background-color: #1D4ED8 !important;
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4);
+            border: none !important;
+        }
+        
+        /* ปรับแต่งกล่องสรุปคำแนะนำ (st.info, st.success) */
+        .stAlert {
+            background-color: #1E293B !important;
+            border: 1px solid #334155 !important;
+            border-radius: 8px !important;
+        }
+        
+        /* ปรับแต่งเส้นคั่นโครงสร้างแอป */
+        hr {
+            border-color: #334155 !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- 3. ส่วนหัวข้อหลักแบบ High-Tech Title (ไม่มีไอคอนเด็กๆ) ---
+st.markdown("""
+    <h1 style='text-align: left; color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 2px;'>
+        ICU Blood Gas <span style='color: #3B82F6;'>Copilot</span>
+    </h1>
+    <p style='color: #64748B; font-size: 0.95rem; margin-top: 0px;'>Clinical Decision Support System for Arterial Blood Gas Analysis</p>
+""", unsafe_allow_html=True)
+
+st.markdown("---")
 
 # --- จัดการสถานะข้อมูล (Session State) ---
 if 'extracted_data' not in st.session_state:
     st.session_state.extracted_data = {}
 if 'consultation_result' not in st.session_state:
     st.session_state.consultation_result = ""
-if 'chat_history' not in st.session_state: # <-- เพิ่ม State สำหรับเก็บประวัติแชท
+if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 
-st.title("🏥 ICU Blood Gas Copilot")
-st.markdown("---")
-
 # --- ส่วนอัปโหลดรูปภาพ ---
-uploaded_file = st.file_uploader("📸 ถ่ายรูปสลิป / เลือกไฟล์จากเครื่อง...", type=['jpg', 'png', 'jpeg'])
+uploaded_file = st.file_uploader("📸 Upload ABG Slip / Image File", type=['jpg', 'png', 'jpeg'])
 
 if uploaded_file is not None:
-    st.image(uploaded_file, caption="รูปที่อัปโหลด", width=300)
+    st.image(uploaded_file, caption="Uploaded Image", width=300)
     
-    if st.button("🔍 รับข้อมูลจากรูปภาพ"):
+    if st.button("🔍 SCAN IMAGE"):
         with st.spinner('AI กำลังอ่านตัวเลขจากสลิป...'):
             result = extract_data_from_image(uploaded_file)
             
@@ -34,8 +94,8 @@ if uploaded_file is not None:
                 error_msg = result.get("Message", "ไม่สามารถอ่านข้อมูลได้ หรือโควต้าเต็ม")
                 st.error(f"❌ {error_msg}")
 
-# --- ลดขนาดหัวข้อลงโดยใช้ #### ---
-st.markdown("#### 🩸 ข้อมูลจากสลิป (ตรวจสอบความถูกต้อง สามารถแก้ไขได้)")
+# --- ปรับหัวข้ออินพุตข้อมูลแล็บให้ดูเป็นทางการ ---
+st.markdown("<h4 style='color: #94A3B8; margin-top: 20px; font-weight: 600;'>PATIENT ABG DATA</h4>", unsafe_allow_html=True)
 data = st.session_state.extracted_data
 
 # --- ส่วนแสดงช่องกรอกข้อมูล (3 คอลัมน์) ---
@@ -58,23 +118,23 @@ with col3:
 
 st.markdown("---")
 
-# --- ส่วนข้อมูลเพิ่มเติม (ลดขนาดหัวข้อ และเพิ่มช่อง Age) ---
-st.markdown("#### 📝 ข้อมูลผู้ป่วยและเครื่องช่วยหายใจเพิ่มเติม")
+# --- ส่วนข้อมูลเพิ่มเติม (ปรับดีไซน์หัวข้อ) ---
+st.markdown("<h4 style='color: #94A3B8; font-weight: 600;'>VENTILATOR & CLINICAL METRICS</h4>", unsafe_allow_html=True)
 ca, cb, cc = st.columns(3)
 with ca:
     age = st.text_input("Age (ปี)", value="")
     fio2 = st.number_input("FiO2 (%)", min_value=21, max_value=100, value=21)
     temp = st.text_input("Temperature (°C)", value="37.0")
 with cb:
-    mode = st.text_input("Ventilator Mode", placeholder="เช่น PCV, PSV...")
+    mode = st.text_input("Ventilator Mode", placeholder="e.g., PCV, PSV...")
     peep = st.text_input("PEEP", value="5")
 with cc:
     rr = st.text_input("Resp. Rate (RR)", value="")
     tv = st.text_input("Tidal Volume (TV)", value="")
 
-patient_info = st.text_area("ประวัติสำคัญ / อาการเบื้องต้น", placeholder="ระบุประวัติหรืออาการเพิ่มเติมที่นี่...")
+patient_info = st.text_area("Patient History / Clinical Note", placeholder="ระบุประวัติ อาการสำคัญ หรือข้อมูลเพิ่มเติมทางคลินิก...")
 
-# --- รวบรวมข้อมูลทั้งหมด ---
+# --- รวบรวมข้อมูลทั้งหมดเพื่อใช้ส่งต่อ (ไม่มีการเปลี่ยนโครงสร้างตัวแปร) ---
 full_data = {
     "pH": ph, "PaCO2": paco2, "PaO2": pao2,
     "Na": na, "K": k, "Cl": cl,
@@ -87,7 +147,7 @@ full_data = {
 st.markdown("---")
 
 # ==========================================
-# 🧮 ค่าคำนวณทางคลินิก (Calculated Indices)
+# 🧮 ส่วนคำนวณดัชนีทางคลินิก (คงสไตล์เดิม ไม่ยุ่งเกี่ยวกับสูตรตัวเลข)
 # ==========================================
 st.markdown("#### 🧮 ค่าคำนวณทางคลินิก (Calculated Indices)")
 st.caption("คำนวณโดยตรงจากสูตรสรีรวิทยา (อัปเดตอัตโนมัติตามข้อมูลด้านบน)")
@@ -107,49 +167,45 @@ with m4:
 st.markdown("---")
 
 # ==========================================
-# 🚀 วิเคราะห์ผลและขอคำแนะนำ
+# 🚀 ปุ่มเรียกใช้ AI วิเคราะห์ผล
 # ==========================================
-if st.button("🚀 วิเคราะห์ผลและขอคำแนะนำ"):
+if st.button("🚀 RUN CLINICAL AI ANALYSIS"):
     full_data["Calculated_PF"] = calc_results.get("PF_Ratio")
     full_data["Calculated_Aa"] = calc_results.get("Aa_Gradient")
     
     with st.spinner('AI กำลังวิเคราะห์ข้อมูลร่วมกับผลคำนวณ...'):
         advice = get_ai_consultation(full_data)
         st.session_state.consultation_result = advice
-        st.session_state.chat_history = [] # <-- ล้างประวัติแชทเก่าทิ้ง เมื่อเริ่มเคสใหม่
+        st.session_state.chat_history = [] 
         st.rerun()
 
 # ==========================================
-# 💬 ส่วนของคำแนะนำ และ CHATBOT ถาม-ตอบ
+# 💬 ส่วนแผงควบคุมแชทและการแสดงผลลัพธ์ (สไตล์โมเดิร์น ไร้อีโมจิเด็ก)
 # ==========================================
 if st.session_state.consultation_result:
-    st.markdown("#### 🤖 สรุปคำแนะนำจาก AI")
+    st.markdown("<h4 style='color: #3B82F6; font-weight: 600;'>AI CLINICAL CONSULTATION</h4>", unsafe_allow_html=True)
     st.info(st.session_state.consultation_result)
     
     st.markdown("---")
-    st.markdown("#### 💬 ถาม-ตอบเพิ่มเติมเกี่ยวกับเคสนี้")
+    st.markdown("<h4 style='color: #94A3B8; font-weight: 600;'>INTERACTIVE CASE COPILOT</h4>", unsafe_allow_html=True)
     
-    # 1. ลูปแสดงประวัติแชทเก่าบนหน้าจอ
+    # แสดงประวัติแชทเก่า
     for message in st.session_state.chat_history:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    # 2. ช่องรับคำถามใหม่จากผู้ใช้
-    if prompt := st.chat_input("พิมพ์คำถามที่นี่ เช่น 'ขอวิธีปรับ PEEP' หรือ 'อธิบาย A-a gradient เพิ่มเติม'"):
+    # ช่องรับคำถามใหม่
+    if prompt := st.chat_input("พิมพ์คำถามทางคลินิกเพิ่มเติมเกี่ยวกับเคสนี้..."):
         
-        # เพิ่มคำถามของผู้ใช้ลงในประวัติและแสดงผล
         st.session_state.chat_history.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # เตรียมบริบททั้งหมดส่งให้ AI (ข้อมูลสลิป + คำแนะนำเดิม)
         context_str = f"ข้อมูลคนไข้ทั้งหมด: {full_data}\nคำแนะนำเริ่มต้นที่ AI ให้ไปแล้ว: {st.session_state.consultation_result}"
 
-        # ส่งไปให้ AI คิดและแสดงผล
         with st.chat_message("assistant"):
-            with st.spinner("กำลังพิมพ์คำตอบ..."):
+            with st.spinner("กำลังประมวลผลคำตอบ..."):
                 response = chat_with_gemini(context_str, st.session_state.chat_history)
                 st.markdown(response)
         
-        # นำคำตอบที่ได้ไปเก็บในประวัติแชท
         st.session_state.chat_history.append({"role": "assistant", "content": response})
