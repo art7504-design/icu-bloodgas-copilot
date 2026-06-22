@@ -3,7 +3,7 @@ from image_processing import extract_data_from_image
 from calculations import calculate_clinical_indices
 from ai_consultant import get_ai_consultation, chat_with_gemini
 
-# --- 1. ตั้งค่าหน้าเว็บให้เรียบหรู (เอาไอคอน 🏥 แบบเดิมออก เปลี่ยนเป็นสัญลักษณ์ทางการแพทย์ 🩺) ---
+# --- 1. ตั้งค่าหน้าเว็บให้เรียบหรู (ใช้สัญลักษณ์ทางการแพทย์ 🩺) ---
 st.set_page_config(page_title="ICU Blood Gas Copilot", page_icon="🩺", layout="wide")
 
 # --- 2. Custom CSS สำหรับปรับโทนสีพื้นหลังและส่วนประกอบทั้งหมด (ธีม Clinical High-Tech) ---
@@ -59,13 +59,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. ส่วนหัวข้อหลักแบบ High-Tech Title (ไม่มีไอคอนเด็กๆ) ---
-st.markdown("""
-    <h1 style='text-align: left; color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 2px;'>
-        ICU Blood Gas <span style='color: #3B82F6;'>Copilot</span>
-    </h1>
-    <p style='color: #64748B; font-size: 0.95rem; margin-top: 0px;'>Clinical Decision Support System for Arterial Blood Gas Analysis</p>
-""", unsafe_allow_html=True)
+# --- 3. แสดงแบนเนอร์หลักแทนที่ข้อความหัวข้อเดิม (ปรับขนาดออโต้ตามหน้าจออุปกรณ์) ---
+st.image("banner.jpg", use_container_width=True)
 
 st.markdown("---")
 
