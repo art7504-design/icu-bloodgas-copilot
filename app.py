@@ -60,7 +60,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- 3. แสดงแบนเนอร์หลักแทนที่ข้อความหัวข้อเดิม (ปรับขนาดออโต้ตามหน้าจออุปกรณ์) ---
-st.image("banner2.jpg", use_container_width=True)
+st.image("banner2.png", use_container_width=True)
 
 st.markdown("---")
 
