@@ -61,10 +61,24 @@ st.markdown("""
 
 # --- 3. ส่วนหัวข้อหลักแบบ High-Tech Title (ไม่มีไอคอนเด็กๆ) ---
 st.markdown("""
-    <h1 style='text-align: left; color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 2px;'>
-        ICU Blood Gas <span style='color: #3B82F6;'>Copilot</span>
-    </h1>
-    <p style='color: #64748B; font-size: 0.95rem; margin-top: 0px;'>Clinical Decision Support System for Arterial Blood Gas Analysis</p>
+    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px;">
+        <svg width="50" height="50" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="background: #1E293B; padding: 8px; border-radius: 12px; border: 1px solid #334155;">
+            <circle cx="50" cy="50" r="40" stroke="#334155" stroke-width="2" stroke-dasharray="4 4"/>
+            <path d="M15 50 H35 L43 25 L52 75 L60 45 L65 55 L70 50 H85" stroke="#3B82F6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="43" cy="25" r="4" fill="#60A5FA"/>
+            <circle cx="52" cy="75" r="4" fill="#60A5FA"/>
+            <circle cx="60" cy="45" r="3" fill="#93C5FD"/>
+        </svg>
+        
+        <div>
+            <h1 style='color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 800; font-size: 2rem; letter-spacing: -0.5px; margin: 0; padding: 0; line-height: 1.1;'>
+                ICU Blood Gas <span style='color: #3B82F6;'>Copilot</span>
+            </h1>
+            <p style='color: #64748B; font-size: 0.85rem; font-weight: 500; margin: 4px 0 0 0; padding: 0; text-transform: uppercase; letter-spacing: 1px;'>
+                Clinical Decision Support System
+            </p>
+        </div>
+    </div>
 """, unsafe_allow_html=True)
 
 st.markdown("---")
